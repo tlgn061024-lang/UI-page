@@ -415,9 +415,7 @@
     </div>
     <div class="content">
       <div class="list" id="robotList"></div>
-      <div class="hint">
-
-      </div>
+      <div class="hint"></div>
     </div>
   </div>
 
@@ -444,9 +442,7 @@
         <button id="btnLED">LED</button>
         <button id="btnE">E 회전</button>
       </div>
-      <div class="hint">
-      
-      </div>
+      <div class="hint"></div>
     </div>
   </div>
 
@@ -473,9 +469,7 @@
         <button id="btnMapMsg">지도 안내 표시</button>
         <button id="btnReset">리셋</button>
       </div>
-      <div class="hint">
-
-      </div>
+      <div class="hint"></div>
     </div>
   </div>
 </section>
@@ -557,11 +551,6 @@
   }
 
   // click robots on map
-  Object.values(groups).forEach(g=>{
-    g.addEventListener('click', ()=>{
-      const id = g.id.split('_')[1].replace('R','R-'); // not used
-    });
-  });
   gR01.addEventListener('click', ()=>selectRobot('R-01'));
   gR02.addEventListener('click', ()=>selectRobot('R-02'));
   gR03.addEventListener('click', ()=>selectRobot('R-03'));
@@ -587,13 +576,11 @@
     hudAlarm.textContent = alarmOn ? 'ON' : 'OFF';
     hudMode.textContent = 'REMOTE';
 
-    // move selected robot group visually
     robots.forEach(rr=>{
       const g = groups[rr.id];
       g.setAttribute('transform', `translate(${rr.x},${rr.y}) rotate(${rr.yaw})`);
     });
 
-    // speed mock
     st_spd.textContent = currentSpeed.toFixed(2) + ' m/s';
   }
 
@@ -601,12 +588,12 @@
   // Movement simulation
   // -----------------------
   let currentSpeed = 0;
-  const step = 8;      // move step in SVG units
-  const yawStep = 10;  // degrees
+  const step = 8;
+  const yawStep = 10;
 
   function moveForward(dir=1){
     const r = selected;
-    const rad = (r.yaw - 90) * Math.PI / 180; // arrow points up at yaw=0, so offset
+    const rad = (r.yaw - 90) * Math.PI / 180;
     r.x += Math.cos(rad) * step * dir;
     r.y += Math.sin(rad) * step * dir;
     clampToMap(r);
@@ -628,7 +615,6 @@
     syncPanels();
   }
   function spin(dir=1){
-    // same as rotate but labeled "제자리"
     rotate(dir);
   }
   function stop(){
@@ -636,7 +622,6 @@
     syncPanels();
   }
   function clampToMap(r){
-    // keep inside outer walls area roughly
     r.x = Math.max(70, Math.min(830, r.x));
     r.y = Math.max(70, Math.min(455, r.y));
   }
@@ -665,7 +650,6 @@
   document.getElementById('btnSpray').onclick = ()=>{
     sprayState = 'SPRAYING';
     syncPanels();
-    // auto stop after 2s
     setTimeout(()=>{
       sprayState = 'READY';
       syncPanels();
@@ -722,16 +706,37 @@
   });
 
   // -----------------------
-  // Camera mock renderer
+  // Camera mock renderer (IMAGE BASED)
   // -----------------------
   const cam = document.getElementById('cam');
   const ctx = cam.getContext('2d');
+
+  // ✅ 네가 첨부한 그림 파일을 같은 폴더에 저장하고 이름을 "front_cam_mock.png"로 맞춰줘
+  const camImg = new Image();
+  camImg.src = 'front_cam_mock.png';
+  let camImgReady = false;
+  camImg.onload = ()=> camImgReady = true;
+
   function resizeCam(){
-    cam.width = cam.clientWidth * devicePixelRatio;
-    cam.height = cam.clientHeight * devicePixelRatio;
+    cam.width = Math.max(1, Math.floor(cam.clientWidth * devicePixelRatio));
+    cam.height = Math.max(1, Math.floor(cam.clientHeight * devicePixelRatio));
   }
   window.addEventListener('resize', ()=>{ resizeCam(); });
   resizeCam();
+
+  // drawImage를 "카메라처럼 꽉 차게"(cover)
+  function drawCover(ctx, img, x, y, w, h){
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if(!iw || !ih) return;
+
+    const scale = Math.max(w/iw, h/ih);
+    const nw = iw * scale;
+    const nh = ih * scale;
+    const nx = x + (w - nw) / 2;
+    const ny = y + (h - nh) / 2;
+    ctx.drawImage(img, nx, ny, nw, nh);
+  }
 
   let camMsg = '';
   let camMsgUntil = 0;
@@ -740,67 +745,81 @@
     camMsgUntil = performance.now() + 1200;
   }
 
+  function drawRecIndicator(w, h, t){
+    // 좌상단 REC ● (깜빡임)
+    const pad = 12 * devicePixelRatio;
+    const boxW = 120 * devicePixelRatio;
+    const boxH = 34 * devicePixelRatio;
+    const x = pad;
+    const y = pad;
+
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(x, y, boxW, boxH);
+
+    // dot blink
+    const blinkOn = (Math.floor(t / 500) % 2) === 0;
+    const dotX = x + 18 * devicePixelRatio;
+    const dotY = y + boxH / 2;
+
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, 6 * devicePixelRatio, 0, Math.PI*2);
+    ctx.fillStyle = blinkOn ? 'rgba(255,59,59,.95)' : 'rgba(255,59,59,.25)';
+    ctx.fill();
+
+    ctx.fillStyle = '#e9eefc';
+    ctx.font = `${14*devicePixelRatio}px ${getComputedStyle(document.body).fontFamily}`;
+    ctx.fillText('REC', x + 34 * devicePixelRatio, y + 22 * devicePixelRatio);
+  }
+
   function drawCam(t){
     const w = cam.width, h = cam.height;
     ctx.clearRect(0,0,w,h);
 
-    // background gradient
-    const g = ctx.createLinearGradient(0,0,w,h);
-    g.addColorStop(0,'#0a1230');
-    g.addColorStop(1,'#030513');
-    ctx.fillStyle = g;
+    // 1) 배경 = 네 이미지
+    if(camImgReady){
+      drawCover(ctx, camImg, 0, 0, w, h);
+    }else{
+      ctx.fillStyle = '#050816';
+      ctx.fillRect(0,0,w,h);
+      ctx.fillStyle = '#9fb0e6';
+      ctx.font = `${14*devicePixelRatio}px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.fillText('Loading camera image...', 20*devicePixelRatio, 40*devicePixelRatio);
+    }
+
+    // 2) 살짝 어둡게(카메라 느낌)
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
     ctx.fillRect(0,0,w,h);
 
-    // grid
-    ctx.globalAlpha = .25;
-    ctx.strokeStyle = '#4f6cff';
-    ctx.lineWidth = 1;
-    for(let x=0; x<w; x+=50){
-      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
-    }
-    for(let y=0; y<h; y+=50){
-      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
+    // 3) REC 표시
+    drawRecIndicator(w, h, t);
 
-    // fake scene: flame blob
-    const fx = w*0.62 + Math.sin(t/500)*12;
-    const fy = h*0.54 + Math.cos(t/650)*10;
-
-    ctx.fillStyle = 'rgba(255,59,59,.20)';
-    ctx.beginPath();
-    ctx.arc(fx, fy, 80, 0, Math.PI*2);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,59,59,.85)';
-    ctx.beginPath();
-    ctx.moveTo(fx, fy-55);
-    ctx.bezierCurveTo(fx+40, fy-40, fx+55, fy+10, fx+10, fy+55);
-    ctx.bezierCurveTo(fx-10, fy+70, fx-55, fy+40, fx-35, fy+0);
-    ctx.bezierCurveTo(fx-25, fy-35, fx-5, fy-55, fx, fy-55);
-    ctx.fill();
-
-    // crosshair
+    // 4) crosshair
     ctx.strokeStyle = 'rgba(233,238,252,.85)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * devicePixelRatio;
     ctx.beginPath();
-    ctx.moveTo(w/2-18,h/2); ctx.lineTo(w/2+18,h/2);
-    ctx.moveTo(w/2,h/2-18); ctx.lineTo(w/2,h/2+18);
+    ctx.moveTo(w/2-18*devicePixelRatio,h/2); ctx.lineTo(w/2+18*devicePixelRatio,h/2);
+    ctx.moveTo(w/2,h/2-18*devicePixelRatio); ctx.lineTo(w/2,h/2+18*devicePixelRatio);
     ctx.stroke();
 
-    // overlay info
+    // 5) 하단 LIVE 바
     ctx.fillStyle = 'rgba(0,0,0,.55)';
-    ctx.fillRect(12, h-48, 360, 34);
+    ctx.fillRect(12*devicePixelRatio, h-48*devicePixelRatio, 360*devicePixelRatio, 34*devicePixelRatio);
+
     ctx.fillStyle = '#e9eefc';
     ctx.font = `${14*devicePixelRatio}px ${getComputedStyle(document.body).fontFamily}`;
-    ctx.fillText(`LIVE · ${selected.id} · ${selected.link} · NOZZLE:${nozzleTilt===1?'UP':nozzleTilt===-1?'DOWN':'NEUTRAL'}`, 20, h-24);
+    ctx.fillText(
+      `LIVE · ${selected.id} · ${selected.link} · NOZZLE:${nozzleTilt===1?'UP':nozzleTilt===-1?'DOWN':'NEUTRAL'}`,
+      20*devicePixelRatio,
+      h-24*devicePixelRatio
+    );
 
+    // 6) 메시지 팝업
     if(performance.now() < camMsgUntil){
       ctx.fillStyle = 'rgba(0,0,0,.65)';
-      ctx.fillRect(12, 62, 420, 34);
+      ctx.fillRect(12*devicePixelRatio, 62*devicePixelRatio, 420*devicePixelRatio, 34*devicePixelRatio);
       ctx.fillStyle = '#ffd400';
       ctx.font = `${14*devicePixelRatio}px ${getComputedStyle(document.body).fontFamily}`;
-      ctx.fillText(camMsg, 20, 86);
+      ctx.fillText(camMsg, 20*devicePixelRatio, 86*devicePixelRatio);
     }
 
     requestAnimationFrame(drawCam);
@@ -818,3 +837,4 @@
 </script>
 </body>
 </html>
+
