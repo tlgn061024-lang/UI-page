@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>중앙관제시스템 UI (목업)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a33;
+      --panel2:#0f1630;
+      --text:#e9eefc;
+      --muted:#9fb0e6;
+      --accent:#ff3b3b;
+      --good:#3cff80;
+      --warn:#ffd400;
+      --line:#2a3a74;
+      --chip:#1b2550;
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius2: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Helvetica, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background: radial-gradient(1200px 700px at 20% 0%, #1a2a66 0%, var(--bg) 55%);
+      color:var(--text); font-family: var(--sans);
+      min-height:100vh;
+    }
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 18px;
+    }
+    .brand{
+      display:flex; gap:10px; align-items:center;
+      font-weight:800;
+    }
+    .pill{
+      padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      font-size:12px; color:var(--muted);
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr 1.2fr;
+      gap:14px;
+      padding: 0 14px 14px;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .titlebar{
+      padding:12px 14px;
+      display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,.18);
+    }
+    .title{
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .subtitle{
+      font-size:12px; color:var(--muted);
+    }
+    .content{ padding:14px; }
+    .video-wrap{
+      display:grid;
+      grid-template-rows: auto 1fr;
+      gap:10px;
+      height: 520px;
+    }
+    .video{
+      background: #050816;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius2);
+      overflow:hidden;
+      position:relative;
+      min-height: 360px;
+    }
+    canvas#cam{
+      width:100%; height:100%;
+      display:block;
+    }
+    .hud{
+      position:absolute; left:12px; top:12px;
+      display:flex; gap:8px; flex-wrap:wrap;
+      pointer-events:none;
+    }
+    .tag{
+      background: rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.12);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--text);
+    }
+    .tag b{ color: var(--warn); }
+    .tag.ok b{ color: var(--good); }
+    .tag.err b{ color: var(--accent); }
+
+    .panel-row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    .mini{
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius2);
+      padding:12px;
+      min-height: 130px;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 90px 1fr;
+      gap:8px 12px;
+      font-size:13px;
+      align-items:center;
+    }
+    .k{ color: var(--muted); }
+    .v{ font-family: var(--mono); }
+
+    /* Map */
+    .map-wrap{
+      display:grid;
+      grid-template-rows: auto 1fr;
+      gap:10px;
+      height: 520px;
+    }
+    .map{
+      background: #050816;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius2);
+      overflow:hidden;
+      position:relative;
+      min-height: 470px;
+    }
+    svg{ width:100%; height:100%; display:block; }
+
+    .legend{
+      position:absolute; right:12px; top:12px;
+      background: rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      padding:10px;
+      font-size:12px;
+      max-width: 220px;
+    }
+    .legend .row{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; margin:6px 0;
+      color:var(--muted);
+    }
+    .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:8px;}
+    .dot.robot{ background: var(--warn); }
+    .dot.fire{ background: var(--accent); }
+    .dot.ext{ background: #ff6a00; }
+    .dot.exit{ background: var(--good); }
+    .dot.alarm{ background: #6aa6ff; }
+
+    /* Bottom controls */
+    .bottom{
+      display:grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap:14px;
+      padding: 0 14px 18px;
+    }
+    .list{
+      display:flex; flex-direction:column; gap:8px;
+      max-height: 210px; overflow:auto;
+      padding-right: 6px;
+    }
+    .item{
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding:10px;
+      display:flex; justify-content:space-between; align-items:center;
+      cursor:pointer;
+      transition: transform .05s ease;
+    }
+    .item:hover{ transform: translateY(-1px); }
+    .item.active{
+      outline: 2px solid rgba(255,212,0,.35);
+      border-color: rgba(255,212,0,.35);
+    }
+    .name{ font-weight:800; }
+    .meta{ font-size:12px; color:var(--muted); }
+    .badge{
+      padding:6px 10px; border-radius:999px;
+      font-size:12px; font-family: var(--mono);
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      color:var(--text);
+    }
+    .badge.ok{ color: var(--good); border-color: rgba(60,255,128,.35); }
+    .badge.err{ color: var(--accent); border-color: rgba(255,59,59,.35); }
+    .badge.warn{ color: var(--warn); border-color: rgba(255,212,0,.35); }
+
+    .btns{
+      display:grid; grid-template-columns: repeat(3, 1fr);
+      gap:10px;
+    }
+    button{
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      padding:10px 12px;
+      color:var(--text);
+      font-weight:700;
+      cursor:pointer;
+      transition: transform .05s ease, background .12s ease;
+      user-select:none;
+    }
+    button:hover{ background: rgba(255,255,255,.12); }
+    button:active{ transform: translateY(1px); }
+
+    .btn-danger{ background: rgba(255,59,59,.16); border-color: rgba(255,59,59,.35); }
+    .btn-danger:hover{ background: rgba(255,59,59,.22); }
+
+    .btn-good{ background: rgba(60,255,128,.12); border-color: rgba(60,255,128,.30); }
+    .btn-good:hover{ background: rgba(60,255,128,.18); }
+
+    .btn-warn{ background: rgba(255,212,0,.12); border-color: rgba(255,212,0,.30); }
+    .btn-warn:hover{ background: rgba(255,212,0,.18); }
+
+    .hint{
+      margin-top:10px; font-size:12px; color:var(--muted); line-height:1.45;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .bottom{ grid-template-columns: 1fr; }
+      .video-wrap,.map-wrap{ height:auto; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div style="width:12px;height:12px;border-radius:4px;background:var(--accent)"></div>
+    <div>중앙관제시스템 <span class="pill">Mock UI · 지도/카메라/원격조작</span></div>
+  </div>
+  <div class="pill">Floor: <b id="floorLabel">2F</b> · Operator: <b>Control-01</b></div>
+</header>
+
+<section class="grid">
+  <!-- CAMERA -->
+  <div class="card">
+    <div class="titlebar">
+      <div>
+        <div class="title">현장 카메라</div>
+        <div class="subtitle">로봇 전면 카메라 스트림(모의)</div>
+      </div>
+      <div class="pill">Link: <b id="linkQ">LTE Good</b></div>
+    </div>
+    <div class="content video-wrap">
+      <div class="video">
+        <canvas id="cam"></canvas>
+        <div class="hud">
+          <div class="tag ok">Robot: <b id="hudRobot">R-02</b></div>
+          <div class="tag">Mode: <b id="hudMode">REMOTE</b></div>
+          <div class="tag">Battery: <b id="hudBat">86%</b></div>
+          <div class="tag err">Alarm: <b id="hudAlarm">ON</b></div>
+        </div>
+      </div>
+
+      <div class="panel-row">
+        <div class="mini">
+          <div class="title" style="font-size:14px;margin-bottom:8px;">상태</div>
+          <div class="kv">
+            <div class="k">로봇 ID</div><div class="v" id="st_id">R-02</div>
+            <div class="k">위치</div><div class="v" id="st_pos">(x: 340, y: 215)</div>
+            <div class="k">속도</div><div class="v" id="st_spd">0.25 m/s</div>
+            <div class="k">배터리</div><div class="v" id="st_bat">86%</div>
+            <div class="k">통신</div><div class="v" id="st_link">LTE Good</div>
+          </div>
+        </div>
+        <div class="mini">
+          <div class="title" style="font-size:14px;margin-bottom:8px;">경보/제어</div>
+          <div class="kv">
+            <div class="k">감지</div><div class="v"><span style="color:var(--accent);font-weight:800;">화재경보기 2F-03</span></div>
+            <div class="k">LED</div><div class="v" id="st_led">OFF</div>
+            <div class="k">스피커</div><div class="v" id="st_spk">OFF</div>
+            <div class="k">마이크</div><div class="v" id="st_mic">OFF</div>
+            <div class="k">분사</div><div class="v" id="st_spray">READY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="card">
+    <div class="titlebar">
+      <div>
+        <div class="title">평면도</div>
+        <div class="subtitle">로봇 위치 · 화재경보기 · 소화기 · 피난 경로</div>
+      </div>
+      <div class="pill">Select: <b id="selName">R-02</b></div>
+    </div>
+
+    <div class="content map-wrap">
+      <div class="map">
+        <div class="legend">
+          <div style="font-weight:800;margin-bottom:6px;">Legend</div>
+          <div class="row"><span><span class="dot robot"></span>로봇</span><span class="pill">이동/회전</span></div>
+          <div class="row"><span><span class="dot fire"></span>화재 지점</span><span class="pill">감지</span></div>
+          <div class="row"><span><span class="dot alarm"></span>화재경보기</span><span class="pill">신호</span></div>
+          <div class="row"><span><span class="dot ext"></span>소화기</span><span class="pill">거치</span></div>
+          <div class="row"><span><span class="dot exit"></span>비상구</span><span class="pill">유도</span></div>
+          <div style="margin-top:8px;color:var(--muted);line-height:1.35;">
+            • 로봇을 클릭하거나 아래 목록에서 선택<br/>
+            • WASD / ←↑→↓ 로 이동, Q/E 회전
+          </div>
+        </div>
+
+        <!-- Simple Floorplan SVG -->
+        <svg id="floor" viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg">
+          <!-- background -->
+          <rect x="0" y="0" width="900" height="520" fill="#070a18"/>
+
+          <!-- outer walls -->
+          <rect x="50" y="45" width="800" height="430" fill="none" stroke="#dfe6ff" stroke-opacity=".25" stroke-width="6"/>
+
+          <!-- rooms (stylized) -->
+          <rect x="70" y="70" width="360" height="170" fill="none" stroke="#dfe6ff" stroke-opacity=".18" stroke-width="4"/>
+          <text x="85" y="95" fill="#9fb0e6" font-size="14">사무실</text>
+
+          <rect x="70" y="255" width="360" height="195" fill="none" stroke="#dfe6ff" stroke-opacity=".18" stroke-width="4"/>
+          <text x="85" y="280" fill="#9fb0e6" font-size="14">회의실</text>
+
+          <rect x="450" y="70" width="380" height="120" fill="none" stroke="#dfe6ff" stroke-opacity=".18" stroke-width="4"/>
+          <text x="465" y="95" fill="#9fb0e6" font-size="14">창고 / 복도</text>
+
+          <rect x="450" y="205" width="380" height="245" fill="none" stroke="#dfe6ff" stroke-opacity=".18" stroke-width="4"/>
+          <text x="465" y="230" fill="#9fb0e6" font-size="14">강의실</text>
+
+          <!-- evacuation route (green) -->
+          <path d="M 520 400 L 760 400 L 760 150"
+                fill="none" stroke="rgba(60,255,128,.55)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M 760 150 L 740 170 L 780 170 Z" fill="rgba(60,255,128,.75)"/>
+
+          <!-- exits -->
+          <g id="exit1" transform="translate(740,120)">
+            <rect x="0" y="0" width="42" height="42" rx="8" fill="rgba(60,255,128,.18)" stroke="rgba(60,255,128,.6)" stroke-width="2"/>
+            <path d="M10 30 L28 30 L28 12" stroke="rgba(60,255,128,.9)" stroke-width="3" fill="none"/>
+            <path d="M24 12 L30 18 L18 18 Z" fill="rgba(60,255,128,.9)"/>
+          </g>
+
+          <!-- extinguisher icons -->
+          <g class="ext" transform="translate(115,115)">
+            <circle cx="0" cy="0" r="10" fill="rgba(255,106,0,.9)"/>
+            <text x="14" y="5" fill="#9fb0e6" font-size="12">소화기</text>
+          </g>
+          <g class="ext" transform="translate(520,255)">
+            <circle cx="0" cy="0" r="10" fill="rgba(255,106,0,.9)"/>
+            <text x="14" y="5" fill="#9fb0e6" font-size="12">소화기</text>
+          </g>
+
+          <!-- alarm sensor -->
+          <g class="alarm" transform="translate(475,105)">
+            <circle cx="0" cy="0" r="10" fill="rgba(106,166,255,.9)"/>
+            <text x="14" y="5" fill="#9fb0e6" font-size="12">경보기 2F-03</text>
+          </g>
+
+          <!-- fire location -->
+          <g id="fireSpot" transform="translate(640,255)">
+            <circle cx="0" cy="0" r="16" fill="rgba(255,59,59,.25)" stroke="rgba(255,59,59,.85)" stroke-width="2"/>
+            <path d="M0 -10 C 8 -6 10 0 4 10 C 2 14 -3 14 -5 10 C -10 2 -8 -6 0 -10 Z"
+                  fill="rgba(255,59,59,.85)"/>
+            <text x="20" y="5" fill="#ffd0d0" font-size="12">화재 추정</text>
+          </g>
+
+          <!-- robots (interactive) -->
+          <g id="robot_R01" class="robot" transform="translate(155,310)" cursor="pointer">
+            <circle cx="0" cy="0" r="14" fill="rgba(255,212,0,.20)" stroke="rgba(255,212,0,.85)" stroke-width="2"/>
+            <path d="M0 -10 L6 8 L0 4 L-6 8 Z" fill="rgba(255,212,0,.9)"/>
+            <text x="18" y="5" fill="#e9eefc" font-size="12">R-01</text>
+          </g>
+
+          <g id="robot_R02" class="robot" transform="translate(340,215)" cursor="pointer">
+            <circle cx="0" cy="0" r="14" fill="rgba(255,212,0,.20)" stroke="rgba(255,212,0,.85)" stroke-width="2"/>
+            <path id="r2Arrow" d="M0 -10 L6 8 L0 4 L-6 8 Z" fill="rgba(255,212,0,.9)"/>
+            <text x="18" y="5" fill="#e9eefc" font-size="12">R-02</text>
+          </g>
+
+          <g id="robot_R03" class="robot" transform="translate(250,120)" cursor="pointer">
+            <circle cx="0" cy="0" r="14" fill="rgba(255,212,0,.20)" stroke="rgba(255,212,0,.85)" stroke-width="2"/>
+            <path d="M0 -10 L6 8 L0 4 L-6 8 Z" fill="rgba(255,212,0,.9)"/>
+            <text x="18" y="5" fill="#e9eefc" font-size="12">R-03</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bottom">
+  <!-- robot list -->
+  <div class="card">
+    <div class="titlebar">
+      <div>
+        <div class="title">로봇 목록</div>
+        <div class="subtitle">층별 배치 · 상태 모니터링</div>
+      </div>
+      <div class="pill">Total: <b>3</b></div>
+    </div>
+    <div class="content">
+      <div class="list" id="robotList"></div>
+      <div class="hint">
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 이동/조작 -->
+  <div class="card">
+    <div class="titlebar">
+      <div>
+        <div class="title">원격 이동</div>
+        <div class="subtitle">이동 및 회전</div>
+      </div>
+      <div class="pill">Keys: <b>WASD</b> / <b>Q E</b></div>
+    </div>
+    <div class="content">
+      <div class="btns">
+        <button id="btnF" class="btn-good">▲ 전진</button>
+        <button id="btnStop" class="btn-warn">■ 정지</button>
+        <button id="btnB" class="btn-good">▼ 후진</button>
+
+        <button id="btnL">◀ 좌</button>
+        <button id="btnSpinL">⟲ 제자리</button>
+        <button id="btnR">우 ▶</button>
+
+        <button id="btnQ">Q 회전</button>
+        <button id="btnLED">LED</button>
+        <button id="btnE">E 회전</button>
+      </div>
+      <div class="hint">
+      
+      </div>
+    </div>
+  </div>
+
+  <!-- 소화기/피난 -->
+  <div class="card">
+    <div class="titlebar">
+      <div>
+        <div class="title">소화기 조작 / 피난 유도</div>
+        <div class="subtitle">안전핀 제거 · 분사 · 스피커/마이크</div>
+      </div>
+      <div class="pill">EXT: <b>READY</b></div>
+    </div>
+    <div class="content">
+      <div class="btns">
+        <button id="btnPin" class="btn-warn">안전핀 제거</button>
+        <button id="btnSpray" class="btn-danger">분사</button>
+        <button id="btnRelease">원터치 릴리즈</button>
+
+        <button id="btnTiltUp">노즐 ↑</button>
+        <button id="btnTiltDown">노즐 ↓</button>
+        <button id="btnMic">마이크 켜기</button>
+
+        <button id="btnSpk" class="btn-good">피난 안내 방송</button>
+        <button id="btnMapMsg">지도 안내 표시</button>
+        <button id="btnReset">리셋</button>
+      </div>
+      <div class="hint">
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // -----------------------
+  // Simple state model
+  // -----------------------
+  const robots = [
+    { id:'R-01', floor:'2F', x:155, y:310, yaw: 0, bat:72, link:'LTE Fair', status:'STANDBY', led:false, spk:false, mic:false },
+    { id:'R-02', floor:'2F', x:340, y:215, yaw: 35, bat:86, link:'LTE Good', status:'ACTIVE',  led:false, spk:false, mic:false },
+    { id:'R-03', floor:'2F', x:250, y:120, yaw: 270, bat:64, link:'LTE Good', status:'STANDBY', led:false, spk:false, mic:false },
+  ];
+  let selected = robots[1];
+  let alarmOn = true;
+  let sprayState = 'READY';
+  let nozzleTilt = 0; // -1 down, 0 neutral, +1 up (mock)
+
+  // DOM refs
+  const robotListEl = document.getElementById('robotList');
+  const selName = document.getElementById('selName');
+  const floorLabel = document.getElementById('floorLabel');
+
+  const st_id = document.getElementById('st_id');
+  const st_pos = document.getElementById('st_pos');
+  const st_spd = document.getElementById('st_spd');
+  const st_bat = document.getElementById('st_bat');
+  const st_link = document.getElementById('st_link');
+  const st_led = document.getElementById('st_led');
+  const st_spk = document.getElementById('st_spk');
+  const st_mic = document.getElementById('st_mic');
+  const st_spray = document.getElementById('st_spray');
+  const linkQ = document.getElementById('linkQ');
+
+  const hudRobot = document.getElementById('hudRobot');
+  const hudMode  = document.getElementById('hudMode');
+  const hudBat   = document.getElementById('hudBat');
+  const hudAlarm = document.getElementById('hudAlarm');
+
+  // SVG robot groups
+  const svg = document.getElementById('floor');
+  const gR01 = document.getElementById('robot_R01');
+  const gR02 = document.getElementById('robot_R02');
+  const gR03 = document.getElementById('robot_R03');
+  const groups = { 'R-01': gR01, 'R-02': gR02, 'R-03': gR03 };
+
+  // -----------------------
+  // Render robot list
+  // -----------------------
+  function badgeClass(r){
+    if(r.status === 'ACTIVE') return 'badge warn';
+    if(r.link.includes('Fair')) return 'badge warn';
+    return 'badge ok';
+  }
+
+  function renderList(){
+    robotListEl.innerHTML = '';
+    robots.forEach(r=>{
+      const el = document.createElement('div');
+      el.className = 'item' + (r.id===selected.id ? ' active' : '');
+      el.onclick = ()=> selectRobot(r.id);
+      el.innerHTML = `
+        <div>
+          <div class="name">${r.id} <span class="meta">(${r.floor})</span></div>
+          <div class="meta">BAT ${r.bat}% · ${r.link} · ${r.status}</div>
+        </div>
+        <div class="${badgeClass(r)}">${r.status}</div>
+      `;
+      robotListEl.appendChild(el);
+    });
+  }
+
+  function selectRobot(id){
+    selected = robots.find(r=>r.id===id) || selected;
+    selName.textContent = selected.id;
+    floorLabel.textContent = selected.floor;
+    renderList();
+    syncPanels();
+  }
+
+  // click robots on map
+  Object.values(groups).forEach(g=>{
+    g.addEventListener('click', ()=>{
+      const id = g.id.split('_')[1].replace('R','R-'); // not used
+    });
+  });
+  gR01.addEventListener('click', ()=>selectRobot('R-01'));
+  gR02.addEventListener('click', ()=>selectRobot('R-02'));
+  gR03.addEventListener('click', ()=>selectRobot('R-03'));
+
+  // -----------------------
+  // Update panels / HUD
+  // -----------------------
+  function syncPanels(){
+    const r = selected;
+    st_id.textContent = r.id;
+    st_pos.textContent = `(x: ${Math.round(r.x)}, y: ${Math.round(r.y)})`;
+    st_bat.textContent = `${r.bat}%`;
+    st_link.textContent = r.link;
+    linkQ.textContent = r.link;
+
+    st_led.textContent = r.led ? 'ON' : 'OFF';
+    st_spk.textContent = r.spk ? 'ON' : 'OFF';
+    st_mic.textContent = r.mic ? 'ON' : 'OFF';
+    st_spray.textContent = sprayState;
+
+    hudRobot.textContent = r.id;
+    hudBat.textContent = `${r.bat}%`;
+    hudAlarm.textContent = alarmOn ? 'ON' : 'OFF';
+    hudMode.textContent = 'REMOTE';
+
+    // move selected robot group visually
+    robots.forEach(rr=>{
+      const g = groups[rr.id];
+      g.setAttribute('transform', `translate(${rr.x},${rr.y}) rotate(${rr.yaw})`);
+    });
+
+    // speed mock
+    st_spd.textContent = currentSpeed.toFixed(2) + ' m/s';
+  }
+
+  // -----------------------
+  // Movement simulation
+  // -----------------------
+  let currentSpeed = 0;
+  const step = 8;      // move step in SVG units
+  const yawStep = 10;  // degrees
+
+  function moveForward(dir=1){
+    const r = selected;
+    const rad = (r.yaw - 90) * Math.PI / 180; // arrow points up at yaw=0, so offset
+    r.x += Math.cos(rad) * step * dir;
+    r.y += Math.sin(rad) * step * dir;
+    clampToMap(r);
+    currentSpeed = 0.25 * dir;
+    syncPanels();
+  }
+  function strafe(side=1){
+    const r = selected;
+    const rad = (r.yaw) * Math.PI / 180;
+    r.x += Math.cos(rad) * step * side;
+    r.y += Math.sin(rad) * step * side;
+    clampToMap(r);
+    currentSpeed = 0.22;
+    syncPanels();
+  }
+  function rotate(dir=1){
+    selected.yaw = (selected.yaw + yawStep * dir + 360) % 360;
+    currentSpeed = 0;
+    syncPanels();
+  }
+  function spin(dir=1){
+    // same as rotate but labeled "제자리"
+    rotate(dir);
+  }
+  function stop(){
+    currentSpeed = 0;
+    syncPanels();
+  }
+  function clampToMap(r){
+    // keep inside outer walls area roughly
+    r.x = Math.max(70, Math.min(830, r.x));
+    r.y = Math.max(70, Math.min(455, r.y));
+  }
+
+  // buttons
+  document.getElementById('btnF').onclick = ()=>moveForward(1);
+  document.getElementById('btnB').onclick = ()=>moveForward(-1);
+  document.getElementById('btnL').onclick = ()=>strafe(-1);
+  document.getElementById('btnR').onclick = ()=>strafe(1);
+  document.getElementById('btnStop').onclick = ()=>stop();
+  document.getElementById('btnQ').onclick = ()=>rotate(-1);
+  document.getElementById('btnE').onclick = ()=>rotate(1);
+  document.getElementById('btnSpinL').onclick = ()=>spin(-1);
+
+  // LED toggle
+  document.getElementById('btnLED').onclick = ()=>{
+    selected.led = !selected.led;
+    syncPanels();
+  };
+
+  // Extinguisher controls (mock)
+  document.getElementById('btnPin').onclick = ()=>{
+    sprayState = 'PIN REMOVED';
+    syncPanels();
+  };
+  document.getElementById('btnSpray').onclick = ()=>{
+    sprayState = 'SPRAYING';
+    syncPanels();
+    // auto stop after 2s
+    setTimeout(()=>{
+      sprayState = 'READY';
+      syncPanels();
+    }, 2000);
+  };
+  document.getElementById('btnRelease').onclick = ()=>{
+    sprayState = 'RELEASED (MANUAL USE)';
+    syncPanels();
+    setTimeout(()=>{
+      sprayState = 'READY';
+      syncPanels();
+    }, 1600);
+  };
+
+  document.getElementById('btnTiltUp').onclick = ()=>{
+    nozzleTilt = Math.min(1, nozzleTilt + 1);
+    flashCamText(`노즐 틸트: ${nozzleTilt === 1 ? 'UP' : 'NEUTRAL'}`);
+  };
+  document.getElementById('btnTiltDown').onclick = ()=>{
+    nozzleTilt = Math.max(-1, nozzleTilt - 1);
+    flashCamText(`노즐 틸트: ${nozzleTilt === -1 ? 'DOWN' : 'NEUTRAL'}`);
+  };
+
+  document.getElementById('btnMic').onclick = ()=>{
+    selected.mic = !selected.mic;
+    syncPanels();
+  };
+  document.getElementById('btnSpk').onclick = ()=>{
+    selected.spk = !selected.spk;
+    syncPanels();
+    flashCamText(selected.spk ? '피난 안내 방송 ON' : '피난 안내 방송 OFF');
+  };
+  document.getElementById('btnMapMsg').onclick = ()=>{
+    flashCamText('지도 안내 표시 업데이트');
+  };
+  document.getElementById('btnReset').onclick = ()=>{
+    sprayState = 'READY';
+    selected.led = false; selected.spk = false; selected.mic = false;
+    alarmOn = true;
+    nozzleTilt = 0;
+    syncPanels();
+  };
+
+  // Keyboard controls
+  window.addEventListener('keydown', (e)=>{
+    if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+    if(e.key === 'w' || e.key === 'ArrowUp') moveForward(1);
+    if(e.key === 's' || e.key === 'ArrowDown') moveForward(-1);
+    if(e.key === 'a' || e.key === 'ArrowLeft') strafe(-1);
+    if(e.key === 'd' || e.key === 'ArrowRight') strafe(1);
+    if(e.key.toLowerCase() === 'q') rotate(-1);
+    if(e.key.toLowerCase() === 'e') rotate(1);
+    if(e.key === ' ') stop();
+  });
+
+  // -----------------------
+  // Camera mock renderer
+  // -----------------------
+  const cam = document.getElementById('cam');
+  const ctx = cam.getContext('2d');
+  function resizeCam(){
+    cam.width = cam.clientWidth * devicePixelRatio;
+    cam.height = cam.clientHeight * devicePixelRatio;
+  }
+  window.addEventListener('resize', ()=>{ resizeCam(); });
+  resizeCam();
+
+  let camMsg = '';
+  let camMsgUntil = 0;
+  function flashCamText(msg){
+    camMsg = msg;
+    camMsgUntil = performance.now() + 1200;
+  }
+
+  function drawCam(t){
+    const w = cam.width, h = cam.height;
+    ctx.clearRect(0,0,w,h);
+
+    // background gradient
+    const g = ctx.createLinearGradient(0,0,w,h);
+    g.addColorStop(0,'#0a1230');
+    g.addColorStop(1,'#030513');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,w,h);
+
+    // grid
+    ctx.globalAlpha = .25;
+    ctx.strokeStyle = '#4f6cff';
+    ctx.lineWidth = 1;
+    for(let x=0; x<w; x+=50){
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+    }
+    for(let y=0; y<h; y+=50){
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // fake scene: flame blob
+    const fx = w*0.62 + Math.sin(t/500)*12;
+    const fy = h*0.54 + Math.cos(t/650)*10;
+
+    ctx.fillStyle = 'rgba(255,59,59,.20)';
+    ctx.beginPath();
+    ctx.arc(fx, fy, 80, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,59,59,.85)';
+    ctx.beginPath();
+    ctx.moveTo(fx, fy-55);
+    ctx.bezierCurveTo(fx+40, fy-40, fx+55, fy+10, fx+10, fy+55);
+    ctx.bezierCurveTo(fx-10, fy+70, fx-55, fy+40, fx-35, fy+0);
+    ctx.bezierCurveTo(fx-25, fy-35, fx-5, fy-55, fx, fy-55);
+    ctx.fill();
+
+    // crosshair
+    ctx.strokeStyle = 'rgba(233,238,252,.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(w/2-18,h/2); ctx.lineTo(w/2+18,h/2);
+    ctx.moveTo(w/2,h/2-18); ctx.lineTo(w/2,h/2+18);
+    ctx.stroke();
+
+    // overlay info
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(12, h-48, 360, 34);
+    ctx.fillStyle = '#e9eefc';
+    ctx.font = `${14*devicePixelRatio}px ${getComputedStyle(document.body).fontFamily}`;
+    ctx.fillText(`LIVE · ${selected.id} · ${selected.link} · NOZZLE:${nozzleTilt===1?'UP':nozzleTilt===-1?'DOWN':'NEUTRAL'}`, 20, h-24);
+
+    if(performance.now() < camMsgUntil){
+      ctx.fillStyle = 'rgba(0,0,0,.65)';
+      ctx.fillRect(12, 62, 420, 34);
+      ctx.fillStyle = '#ffd400';
+      ctx.font = `${14*devicePixelRatio}px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.fillText(camMsg, 20, 86);
+    }
+
+    requestAnimationFrame(drawCam);
+  }
+
+  // init
+  renderList();
+  syncPanels();
+  requestAnimationFrame(drawCam);
+
+  // set transforms initial
+  robots.forEach(rr=>{
+    groups[rr.id].setAttribute('transform', `translate(${rr.x},${rr.y}) rotate(${rr.yaw})`);
+  });
+</script>
+</body>
+</html>
